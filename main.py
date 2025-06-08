@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html, Input, Output, ClientsideFunction
+from dash import dcc, html, Input, Output, ClientsideFunction, callback_context
 import numpy as np
 import pandas as pd
 import datetime
@@ -553,7 +553,10 @@ app.layout = html.Div(
                     children=[
                         html.B("Patient Wait Time and Satisfactory Scores"),
                         html.Hr(),
-                        html.Div(id="wait_time_tabel", children=initialize_table()),
+                        # Bug Fix: Typo
+                        # The callbacks were targeting "wait_time_table", but the layout had a typo.
+                        # This fix ensures the callbacks can update the table's children.
+                        html.Div(id="wait_time_table", children=initialize_table()),
                     ],
                 ),
             ],
@@ -630,7 +633,16 @@ def update_table(start, end, clinic, admit_type, heatmap_click, reset_click, *ar
     filtered_df = filtered_df.sort_values("Check-In Time").set_index("Check-In Time")[
         start:end
     ]
+    
+    #Bug Fix: Handle cases where the dataframe is empty after filtering ---
+    # If no data matches the filters, the app would crash on .min() or .max().
+    # This now returns an empty table, preventing the crash.
+    
+    if filtered_df.empty:
+        return initialize_table()
+    
     departments = filtered_df["Department"].unique()
+
 
 
     if heatmap_click is not None and prop_id != "reset-btn":
@@ -709,4 +721,5 @@ def update_table(start, end, clinic, admit_type, heatmap_click, reset_click, *ar
 
 # Run the server
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    #Port and Host Change:
+    app.run_server(debug=True, port=10030, host='0.0.0.0')
